@@ -1,0 +1,89 @@
+#!/usr/bin/python
+
+import argparse
+import re
+from collections import defaultdict
+
+def load_data(sex, first_year, last_year):
+  data = dict()
+  for year in range(first_year, last_year + 1):
+    names = list()
+    with open("%s/%d.csv" % (sex, year), "rt") as f:
+      for line in f:
+        name, _, count = line.split(',')
+        count = int(count)
+        names.append((name, count))
+    data[year] = names
+  return data
+
+def extract(data, first_year, last_year):
+  d = defaultdict(lambda: 0)
+  for year in range(first_year, last_year + 1):
+    for name, count in data[year]:
+      d[name] += count
+  return sorted(d.items(), reverse=True, cmp=lambda x, y: cmp(x[1], y[1]))
+
+
+def rank_one(xdata, the_name):
+  total = sum([count for name, count in xdata])
+  rank = 0
+  for name, count in xdata:
+    rank += 1
+    if name == the_name:
+      return (rank, count * 100.0 / total, count)
+  return (None, None, None)
+
+def rank_all(xdata):
+  ranked = []
+  total = sum([count for name, count in xdata])
+  rank = 0
+  for name, count in xdata:
+    rank += 1
+    ranked.append((name, rank, count * 100.0 / total, count))
+  return ranked
+
+def show(xdata, top, regex):
+  rx = re.compile(regex)
+  ranked = rank_all(xdata)
+  for name, rank, pct, count in ranked[:top]:
+    if rx.match(name):
+      print "%-15s  %5d  %4.2f%%  %d" % (name, rank, pct, count)
+
+def show_name(data, name, first_year, last_year):
+  history = []
+  for year in range(first_year, last_year + 1):
+    rank, pct, count = rank_one(data[year], name)
+    if rank is not None:
+      print "%4d  %5d  %4.2f%%  %d" % (year, rank, pct, count)
+    else:
+      print "%4d  -----  -----  -"
+      
+
+
+if __name__ == "__main__":
+
+  parser = argparse.ArgumentParser(description='Baby Names Explorer')
+  parser.add_argument('--sex', choices=['female','male'], default='female')
+  parser.add_argument('--first-year', '--first', type=int, default=1880)
+  parser.add_argument('--last-year', '--last', type=int, default=2014)
+  parser.add_argument('--year', '-y', type=int)
+  parser.add_argument('--top', type=int, default=30)
+  parser.add_argument('--show', action='store_true')
+  parser.add_argument('--regex', type=str, default='')
+  parser.add_argument('--name', type=str)
+
+  options = parser.parse_args()
+
+
+  if options.year is not None:
+    options.first_year = options.year
+    options.last_year = options.year
+
+  data = load_data(options.sex, options.first_year, options.last_year)
+
+  if options.show:
+    xdata = extract(data, options.first_year, options.last_year)
+    show(xdata, options.top, options.regex)
+
+  if options.name is not None:
+    show_name(data, options.name, options.first_year, options.last_year)
