@@ -45,9 +45,9 @@ def rank_all(xdata):
 def show(xdata, top, regex):
   rx = re.compile(regex)
   ranked = rank_all(xdata)
+  ranked = filter(lambda x: rx.match(x[0]), ranked)
   for name, rank, pct, count in ranked[:top]:
-    if rx.match(name):
-      print "%-15s  %5d  %4.2f%%  %d" % (name, rank, pct, count)
+    print "%-15s  %5d  %4.2f%%  %d" % (name, rank, pct, count)
 
 def show_name(data, name, first_year, last_year):
   history = []
